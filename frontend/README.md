@@ -1,6 +1,6 @@
 # Getting Started with Create React App
 
-my name is shashwat
+my name is shashwat yadav. in 3rd year.
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
