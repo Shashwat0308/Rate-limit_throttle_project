@@ -81,30 +81,54 @@ function Dashboard() {
             <p>Total: {user.total}</p>
             <p>Blocked: {user.blocked}</p>
 
-            {/* 🔴 Requests Over Time */}
-            <h4>Requests Over Time</h4>
-            <LineChart width={300} height={200} data={rpsData}>
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Line dataKey="requests" stroke="red" strokeWidth={2} />
-            </LineChart>
+           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
 
-            {/* 🔵 Allowed vs Blocked */}
-            <h4>Allowed vs Blocked</h4>
-            <BarChart width={300} height={200} data={barData}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Bar dataKey="value" fill="blue" />
-            </BarChart>
+  {/* 🔴 Requests Over Time */}
+  <div>
+    <h4>Requests Over Time</h4>
+    <LineChart width={300} height={200} data={rpsData}>
+  <XAxis 
+    dataKey="time" 
+    label={{ value: "Time", position: "insideBottom", offset: -5 }} 
+  />
+  <YAxis 
+    label={{ value: "Requests", angle: -90, position: "insideLeft" }} 
+  />
+  <Line dataKey="requests" stroke="red" strokeWidth={2} />
+</LineChart>
+  </div>
 
-            {/* 📊 Rate Spikes */}
-            <h4>Rate Spikes</h4>
-            <LineChart width={300} height={200} data={spikeData}>
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Line dataKey="spike" stroke="green" strokeWidth={2} />
-            </LineChart>
+  {/* 🔵 Allowed vs Blocked */}
+  <div>
+    <h4>Allowed vs Blocked</h4>
+    <BarChart width={300} height={200} data={barData}>
+  <XAxis 
+    dataKey="name" 
+    label={{ value: "Type", position: "insideBottom", offset: -5 }} 
+  />
+  <YAxis 
+    label={{ value: "Count", angle: -90, position: "insideLeft" }} 
+  />
+  <Bar dataKey="value" fill="blue" />
+</BarChart>
+  </div>
 
+  {/* 📊 Rate Spikes */}
+  <div>
+    <h4>Rate Spikes</h4>
+    <LineChart width={300} height={200} data={spikeData}>
+  <XAxis 
+    dataKey="time" 
+    label={{ value: "Time", position: "insideBottom", offset: -5 }} 
+  />
+  <YAxis 
+    label={{ value: "Spike", angle: -90, position: "insideLeft" }} 
+  />
+  <Line dataKey="spike" stroke="green" strokeWidth={2} />
+</LineChart>
+  </div>
+
+         </div>
           </div>
         );
       })}
