@@ -1,35 +1,26 @@
+const RequestLog = require("./models/RequestLog");
 const mongoose = require("mongoose");
 
-// Connect MongoDB
+
 async function connectMongo() {
-  try {
-    await mongoose.connect("mongodb://127.0.0.1:27017/rateLimiterDB");
-    console.log("MongoDB connected ✅");
-  } catch (err) {
-    console.error("MongoDB connection error ❌", err);
-  }
+  await mongoose.connect(process.env.MONGO_URI);
+  console.log("MongoDB connected ✅");
 }
 
-// Schema for storing throttled requests
-const throttleSchema = new mongoose.Schema({
-  id: String,
-  type: String,
-  route: String,
-  timestamp: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-// Model
-const Throttle = mongoose.model("Throttle", throttleSchema);
-
-// Save throttling event
-async function saveThrottleEvent(data) {
+// ✅ Save event (SMART logging)
+async function saveThrottleEvent(event) {
   try {
-    await Throttle.create(data);
+    const log = new RequestLog({
+      userId: event.userId,
+      route: event.route,
+      status: event.allowed ? "allowed" : "blocked",
+      remainingTokens: event.remaining,
+      ip: event.ip,
+    });
+
+    await log.save();
   } catch (err) {
-    console.error("Error saving throttle event ❌", err);
+    console.error("Mongo save error:", err.message);
   }
 }
 

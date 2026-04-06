@@ -190,14 +190,25 @@ function createRateLimiter({
         const result = await checkAndConsume({ key, route });
 
         // ✅ USER ID
-        const userId = req.headers["user-id"] || identity;
+        const userId = req.user?.id || identity;
 
         // ✅ TOTAL
         await redis.incr(`user:${userId}:total`);
 
+        // ❌ BLOCKED
         if (!result.allowed) {
-          // ❌ BLOCKED
           await redis.incr(`user:${userId}:blocked`);
+
+          // 🔥 MongoDB LOG (BLOCKED)
+          if (saveEvent && Math.random() < sampleSaveRate) {
+            await saveEvent({
+              userId,
+              route,
+              allowed: false,
+              remaining: result.remaining,
+              ip: req.ip,
+            });
+          }
 
           res.setHeader("Retry-After", Math.ceil(result.retryAfterMs / 1000));
 
@@ -208,6 +219,17 @@ function createRateLimiter({
 
         // ✅ ALLOWED
         await redis.incr(`user:${userId}:allowed`);
+
+        // 🔥 MongoDB LOG (ALLOWED)
+        if (saveEvent && Math.random() < sampleSaveRate) {
+          await saveEvent({
+            userId,
+            route,
+            allowed: true,
+            remaining: result.remaining,
+            ip: req.ip,
+          });
+        }
 
         // ✅ TIMESTAMPS
         await redis.lpush(`user:${userId}:timestamps`, Date.now());
