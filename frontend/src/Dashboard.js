@@ -9,9 +9,11 @@ import {
   Cell,
 } from "recharts";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Dashboard({ theme, toggleTheme }) {
   const [data, setData] = useState([]);
+  const navigate = useNavigate(); // 🔥 for navigation
 
   // 📊 Fetch analytics
   const fetchData = () => {
@@ -52,25 +54,35 @@ function Dashboard({ theme, toggleTheme }) {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 text-black dark:text-white text-center mb-10 py-6 rounded-lg relative transition-all duration-300">
+    <div className="min-h-screen bg-white dark:bg-slate-900 text-black dark:text-white p-6 transition-all duration-300">
 
-      {/* 🌗 Toggle Button */}
-      <div className="absolute top-4 right-4">
-        <button
-          onClick={toggleTheme}
-          className="px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-600"
-        >
-          {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
-        </button>
+      {/* 🔝 Top Bar */}
+      <div className="flex justify-between items-center mb-8">
+
+        <h1 className="text-3xl text-green-400 font-bold">
+          API Rate Limiter Dashboard 🚀
+        </h1>
+
+        <div className="flex gap-3">
+
+          {/* 🌗 Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-600"
+          >
+            {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+          </button>
+
+          {/* 🔙 Back Button */}
+          <button
+            onClick={() => navigate("/")}
+            className="px-3 py-1 border border-green-400 rounded hover:bg-green-500 hover:text-black"
+          >
+            ← Home
+          </button>
+
+        </div>
       </div>
-
-      <h1 className="text-3xl text-green-400 mb-2">
-        API Rate Limiter & Throttler Analytics 🚀
-      </h1>
-
-      <h2 className="text-2xl font-bold text-black dark:text-white">
-        🚀 API Dashboard
-      </h2>
 
       {/* 👤 USERS */}
       {data.map((user) => {
@@ -102,7 +114,7 @@ function Dashboard({ theme, toggleTheme }) {
         return (
           <div
             key={user.userId}
-            className="bg-gray-200 dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8 transition-all duration-300"
+            className="bg-gray-200 dark:bg-slate-800 p-6 rounded-xl shadow-lg mb-8"
           >
             {/* 🔥 Header */}
             <div className="flex justify-between items-center mb-4">

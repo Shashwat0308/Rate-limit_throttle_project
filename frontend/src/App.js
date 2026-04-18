@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Landing from "./Landing";
 import Dashboard from "./Dashboard";
 
 function App() {
@@ -22,7 +24,23 @@ function App() {
 
   return (
     <div className={theme === "dark" ? "dark" : ""}>
-      <Dashboard theme={theme} toggleTheme={toggleTheme} />
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/"
+            element={<Landing />}
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <Dashboard
+                theme={theme}
+                toggleTheme={toggleTheme}
+              />
+            }
+          />
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 }
