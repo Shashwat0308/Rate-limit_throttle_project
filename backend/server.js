@@ -55,7 +55,7 @@ const rateLimiter = rateLimitFactory({
     capacity: Number(process.env.RL_CAPACITY) || 100,
     windowSec: Number(process.env.RL_WINDOW_SEC) || 60,
   },
-  sampleSaveRate: Number(process.env.SAMPLE_RATE) || 0.1,
+  sampleSaveRate: Number(process.env.SAMPLE_RATE) || 1,
   saveEvent: saveThrottleEvent,
 });
 

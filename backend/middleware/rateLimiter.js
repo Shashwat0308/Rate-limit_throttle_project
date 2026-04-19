@@ -3,7 +3,7 @@ const IORedis = require("ioredis");
 function createRateLimiter({
   redisUrl,
   default: defaultConfig = {},
-  sampleSaveRate = 0.1,
+  sampleSaveRate = 1,
   saveEvent,
 } = {}) {
 
@@ -201,6 +201,7 @@ function createRateLimiter({
 
           // 🔥 MongoDB LOG (BLOCKED)
           if (saveEvent && Math.random() < sampleSaveRate) {
+            console.log("Saving to Mongo (BLOCKED):", userId);
             await saveEvent({
               userId,
               route,
@@ -222,6 +223,8 @@ function createRateLimiter({
 
         // 🔥 MongoDB LOG (ALLOWED)
         if (saveEvent && Math.random() < sampleSaveRate) {
+          console.log("Saving to Mongo (ALLOWED):", userId);
+          
           await saveEvent({
             userId,
             route,
