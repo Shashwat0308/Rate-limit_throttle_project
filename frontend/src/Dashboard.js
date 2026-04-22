@@ -7,7 +7,7 @@ import {
   Bar,
   Tooltip,
   Cell,
-  Label
+  Label,
 } from "recharts";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +17,16 @@ function Dashboard({ theme, toggleTheme }) {
   const [openUser, setOpenUser] = useState(null);
   const navigate = useNavigate();
 
-  // 📊 Fetch data
+  const isDark = theme === "dark";
+
+  const colors = {
+    bg: isDark ? "bg-slate-900" : "bg-slate-100",
+    card: isDark ? "bg-slate-800" : "bg-white",
+    text: isDark ? "text-white" : "text-gray-800",
+    subText: isDark ? "text-gray-400" : "text-gray-500",
+  };
+
+  // 📊 Fetch
   const fetchData = () => {
     fetch("http://localhost:5000/analytics")
       .then((res) => res.json())
@@ -30,7 +39,7 @@ function Dashboard({ theme, toggleTheme }) {
     return () => clearInterval(interval);
   }, []);
 
-  // 🚀 Send request
+  // 🚀 Request
   const sendRequest = async (userId) => {
     const token = localStorage.getItem("token");
 
@@ -50,115 +59,138 @@ function Dashboard({ theme, toggleTheme }) {
     }
   };
 
-  // 🔥 GLOBAL STATS
-  const totalRequests = data.reduce((acc, u) => acc + (u.total || 0), 0);
-  const totalBlocked = data.reduce((acc, u) => acc + (u.blocked || 0), 0);
+  // 🔴 Reset
+  const resetData = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/admin/reset", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      const data = await res.json();
+      alert(data.message);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 📊 Stats
+  const totalRequests = data.reduce((a, u) => a + (u.total || 0), 0);
+  const totalBlocked = data.reduce((a, u) => a + (u.blocked || 0), 0);
   const totalAllowed = totalRequests - totalBlocked;
 
   return (
-    <div className="flex min-h-screen bg-white dark:bg-slate-900 text-black dark:text-white transition-all duration-300">
+    <div className={`flex min-h-screen ${colors.bg} ${colors.text}`}>
 
-      {/* 🧭 SIDEBAR */}
-      <div className="w-64 bg-gray-100 dark:bg-slate-800 p-5 hidden md:block">
+      {/* SIDEBAR */}
+      <div className={`w-64 p-5 hidden md:block ${colors.card}`}>
         <h2 className="text-2xl font-bold text-green-500 mb-8">
           Rate Limiter 🚀
         </h2>
 
-        <ul className="space-y-4 text-gray-600 dark:text-gray-300">
-          <li className="hover:text-green-500 cursor-pointer">Dashboard</li>
-          <li className="hover:text-green-500 cursor-pointer">Analytics</li>
-          <li className="hover:text-green-500 cursor-pointer">Users</li>
-          <li className="hover:text-green-500 cursor-pointer">Settings</li>
+        <ul className={`${colors.subText} space-y-4`}>
+          <li>Dashboard</li>
+          <li>Analytics</li>
+          <li>Users</li>
+          <li>Settings</li>
         </ul>
 
-        <div className="mt-10">
-          <button
-            onClick={() => navigate("/")}
-            className="text-sm border border-green-500 px-3 py-1 rounded hover:bg-green-500 hover:text-black"
-          >
-            ← Home
-          </button>
-        </div>
+        <button
+          onClick={() => navigate("/")}
+          className="mt-10 border px-3 py-1 rounded hover:bg-green-500 hover:text-black"
+        >
+          ← Home
+        </button>
       </div>
 
-      {/* 📊 MAIN */}
+      {/* MAIN */}
       <div className="flex-1 p-6">
 
-        {/* 🔝 TOPBAR */}
-        <div className="flex justify-between items-center mb-6">
+        {/* TOPBAR */}
+        <div className="flex justify-between mb-6">
           <h1 className="text-2xl font-bold">Dashboard 🚀</h1>
 
-          <button
-            onClick={toggleTheme}
-            className="px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-600"
-          >
-            {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={toggleTheme}
+              className="px-3 py-1 rounded bg-gray-700 text-white"
+            >
+              {isDark ? "☀️ Light" : "🌙 Dark"}
+            </button>
+
+            <button
+              onClick={resetData}
+              className="px-4 py-1 rounded bg-red-500 hover:bg-red-600 text-white"
+            >
+              Reset
+            </button>
+          </div>
         </div>
 
-        {/* 📊 STATS */}
+        {/* STATS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-gray-200 dark:bg-slate-800 p-4 rounded-2xl">
-            <p className="text-gray-500">Allowed</p>
-            <h2 className="text-2xl text-green-500">{totalAllowed}</h2>
+          <div className={`${colors.card} p-4 rounded-xl`}>
+            <p className={colors.subText}>Allowed</p>
+            <h2 className="text-green-400 text-2xl">{totalAllowed}</h2>
           </div>
 
-          <div className="bg-gray-200 dark:bg-slate-800 p-4 rounded-2xl">
-            <p className="text-gray-500">Blocked</p>
-            <h2 className="text-2xl text-red-500">{totalBlocked}</h2>
+          <div className={`${colors.card} p-4 rounded-xl`}>
+            <p className={colors.subText}>Blocked</p>
+            <h2 className="text-red-400 text-2xl">{totalBlocked}</h2>
           </div>
 
-          <div className="bg-gray-200 dark:bg-slate-800 p-4 rounded-2xl">
-            <p className="text-gray-500">Total</p>
+          <div className={`${colors.card} p-4 rounded-xl`}>
+            <p className={colors.subText}>Total</p>
             <h2 className="text-2xl">{totalRequests}</h2>
           </div>
 
-          <div className="bg-gray-200 dark:bg-slate-800 p-4 rounded-2xl">
-            <p className="text-gray-500">Users</p>
+          <div className={`${colors.card} p-4 rounded-xl`}>
+            <p className={colors.subText}>Users</p>
             <h2 className="text-2xl">{data.length}</h2>
           </div>
         </div>
 
-        {/* 🌐 GLOBAL OVERVIEW */}
-        <h2 className="text-xl mb-4">🌐 Global Overview</h2>
-
+        {/* GLOBAL GRAPHS */}
         <div className="grid md:grid-cols-3 gap-6 mb-10">
 
           {/* Requests */}
-          <div className="bg-gray-100 dark:bg-slate-800 p-4 rounded-xl">
-            <h4>Requests Over Time</h4>
-            <LineChart width={300} height={220}
+          <div className={`${colors.card} p-4 rounded-xl`}>
+            <h4>Requests</h4>
+            <LineChart width={300} height={200}
               data={data.flatMap(u => u.timestamps || []).slice(-20).map((_, i) => ({
                 time: i + 1,
                 requests: i + 1,
               }))}>
-              <XAxis dataKey="time" stroke={theme === "dark" ? "#fff" : "#000"}>
-                <Label value="Time" position="insideBottom" fill={theme === "dark" ? "#fff" : "#000"} />
+              <XAxis dataKey="time">
+                <Label value="Time" position="insideBottom" />
               </XAxis>
-              <YAxis stroke={theme === "dark" ? "#fff" : "#000"}>
-                <Label value="Requests" angle={-90} position="insideLeft" fill={theme === "dark" ? "#fff" : "#000"} />
+              <YAxis>
+                <Label value="Requests" angle={-90} position="insideLeft" />
               </YAxis>
               <Tooltip />
-              <Line dataKey="requests" stroke="red" />
+              <Line dataKey="requests" stroke="#3b82f6" />
             </LineChart>
           </div>
 
           {/* Allowed vs Blocked */}
-          <div className="bg-gray-100 dark:bg-slate-800 p-4 rounded-xl">
+          <div className={`${colors.card} p-4 rounded-xl`}>
             <h4>Allowed vs Blocked</h4>
-            <BarChart width={300} height={220}
+            <BarChart width={300} height={200}
               data={[
-                { name: "Allowed", value: totalAllowed },
-                { name: "Blocked", value: totalBlocked },
+                { name: "Allowed", value: totalAllowed || 0 },
+                { name: "Blocked", value: totalBlocked || 0 },
               ]}>
-              <XAxis dataKey="name" stroke={theme === "dark" ? "#fff" : "#000"}>
-                <Label value="Type" position="insideBottom" fill={theme === "dark" ? "#fff" : "#000"} />
+              <XAxis dataKey="name">
+                <Label value="Type" position="insideBottom" />
               </XAxis>
-              <YAxis stroke={theme === "dark" ? "#fff" : "#000"}>
-                <Label value="Count" angle={-90} position="insideLeft" fill={theme === "dark" ? "#fff" : "#000"} />
+              <YAxis>
+                <Label value="Count" angle={-90} position="insideLeft" />
               </YAxis>
               <Tooltip />
-              <Bar dataKey="value">
+              <Bar dataKey="value" barSize={40}>
                 <Cell fill="#22c55e" />
                 <Cell fill="#ef4444" />
               </Bar>
@@ -166,126 +198,106 @@ function Dashboard({ theme, toggleTheme }) {
           </div>
 
           {/* Spikes */}
-          <div className="bg-gray-100 dark:bg-slate-800 p-4 rounded-xl">
-            <h4>Rate Spikes</h4>
-            <LineChart width={300} height={220}
+          <div className={`${colors.card} p-4 rounded-xl`}>
+            <h4>Spikes</h4>
+            <LineChart width={300} height={200}
               data={data.flatMap(u => u.timestamps || []).slice(-20).map((_, i) => ({
                 time: i + 1,
-                spike: Math.floor(Math.random() * 10),
+                spike: Math.random() * 10,
               }))}>
-              <XAxis dataKey="time" stroke={theme === "dark" ? "#fff" : "#000"}>
-                <Label value="Time" position="insideBottom" fill={theme === "dark" ? "#fff" : "#000"} />
+              <XAxis dataKey="time">
+                <Label value="Time" position="insideBottom" />
               </XAxis>
-              <YAxis stroke={theme === "dark" ? "#fff" : "#000"}>
-                <Label value="Spike Level" angle={-90} position="insideLeft" fill={theme === "dark" ? "#fff" : "#000"} />
+              <YAxis>
+                <Label value="Spike Level" angle={-90} position="insideLeft" />
               </YAxis>
               <Tooltip />
-              <Line dataKey="spike" stroke="green" />
+              <Line dataKey="spike" stroke="#10b981" />
             </LineChart>
           </div>
 
         </div>
 
-        {/* 👤 USER ACCORDION */}
-        <h2 className="text-xl mb-6">👤 User Analytics</h2>
-
+        {/* USERS */}
         {data.map((user) => {
           const allowed = (user.total || 0) - (user.blocked || 0);
 
-          const rpsData = (user.timestamps || []).slice(-20).map((_, i) => ({
+          const chartData = (user.timestamps || []).slice(-20).map((_, i) => ({
             time: i + 1,
             requests: i + 1,
-          }));
-
-          const spikeData = (user.timestamps || []).slice(-20).map((_, i) => ({
-            time: i + 1,
-            spike: Math.floor(Math.random() * 10),
+            spike: Math.random() * 10,
           }));
 
           return (
             <div key={user.userId} className="mb-4">
 
-              {/* HEADER */}
               <div
                 onClick={() =>
                   setOpenUser(openUser === user.userId ? null : user.userId)
                 }
-                className="bg-gray-200 dark:bg-slate-800 p-4 rounded-xl flex justify-between cursor-pointer"
+                className={`${colors.card} p-3 rounded cursor-pointer`}
               >
-                <span>👤 {user.userId}</span>
-                <span>{openUser === user.userId ? "▲" : "▼"}</span>
+                👤 {user.userId}
               </div>
 
-              {/* CONTENT */}
               {openUser === user.userId && (
-                <div className="bg-gray-100 dark:bg-slate-800 p-6 rounded-xl mt-2">
+                <div className={`${colors.card} p-4 mt-2 rounded`}>
 
                   <button
                     onClick={() => sendRequest(user.userId)}
-                    className="mb-4 bg-blue-500 text-white px-3 py-1 rounded"
+                    className="bg-blue-500 text-white px-3 py-1 rounded mb-3"
                   >
                     Send Request
                   </button>
 
-                  <div className="flex gap-6 mb-4 text-sm">
-                    <span>Total: {user.total}</span>
-                    <span>Allowed: {allowed}</span>
-                    <span className="text-red-500">Blocked: {user.blocked}</span>
+                  <div className="mb-4">
+                    Total: {user.total} | Allowed: {allowed} | Blocked: {user.blocked}
                   </div>
 
-                  <div className="grid md:grid-cols-3 gap-6">
+                  <div className="grid md:grid-cols-3 gap-4">
 
                     {/* Requests */}
-                    <div>
-                      <h4 className="text-sm text-center mb-2">Requests Over Time</h4>
-                      <LineChart width={280} height={200} data={rpsData}>
-                        <XAxis dataKey="time" stroke={theme === "dark" ? "#fff" : "#000"}>
-                          <Label value="Time" position="insideBottom" fill={theme === "dark" ? "#fff" : "#000"} />
-                        </XAxis>
-                        <YAxis stroke={theme === "dark" ? "#fff" : "#000"}>
-                          <Label value="Requests" angle={-90} position="insideLeft" fill={theme === "dark" ? "#fff" : "#000"} />
-                        </YAxis>
-                        <Tooltip />
-                        <Line dataKey="requests" stroke="red" />
-                      </LineChart>
-                    </div>
+                    <LineChart width={250} height={150} data={chartData}>
+                      <XAxis dataKey="time">
+                        <Label value="Time" position="insideBottom" />
+                      </XAxis>
+                      <YAxis>
+                        <Label value="Requests" angle={-90} position="insideLeft" />
+                      </YAxis>
+                      <Tooltip />
+                      <Line dataKey="requests" stroke="#3b82f6" />
+                    </LineChart>
 
-                    {/* Bar */}
-                    <div>
-                      <h4 className="text-sm text-center mb-2">Allowed vs Blocked</h4>
-                      <BarChart width={280} height={200}
-                        data={[
-                          { name: "Allowed", value: allowed },
-                          { name: "Blocked", value: user.blocked || 0 },
-                        ]}>
-                        <XAxis dataKey="name" stroke={theme === "dark" ? "#fff" : "#000"}>
-                          <Label value="Type" position="insideBottom" fill={theme === "dark" ? "#fff" : "#000"} />
-                        </XAxis>
-                        <YAxis stroke={theme === "dark" ? "#fff" : "#000"}>
-                          <Label value="Count" angle={-90} position="insideLeft" fill={theme === "dark" ? "#fff" : "#000"} />
-                        </YAxis>
-                        <Tooltip />
-                        <Bar dataKey="value">
-                          <Cell fill="#22c55e" />
-                          <Cell fill="#ef4444" />
-                        </Bar>
-                      </BarChart>
-                    </div>
+                    {/* Allowed vs Blocked */}
+                    <BarChart width={250} height={150}
+                      data={[
+                        { name: "Allowed", value: allowed },
+                        { name: "Blocked", value: user.blocked || 0 },
+                      ]}>
+                      <XAxis dataKey="name">
+                        <Label value="Type" position="insideBottom" />
+                      </XAxis>
+                      <YAxis>
+                        <Label value="Count" angle={-90} position="insideLeft" />
+                      </YAxis>
+                      <Tooltip />
+                      <Bar dataKey="value" barSize={30}>
+                        <Cell fill="#22c55e" />
+                        <Cell fill="#ef4444" />
+                      </Bar>
+                    </BarChart>
 
                     {/* Spikes */}
-                    <div>
-                      <h4 className="text-sm text-center mb-2">Rate Spikes</h4>
-                      <LineChart width={280} height={200} data={spikeData}>
-                        <XAxis dataKey="time" stroke={theme === "dark" ? "#fff" : "#000"}>
-                          <Label value="Time" position="insideBottom" fill={theme === "dark" ? "#fff" : "#000"} />
-                        </XAxis>
-                        <YAxis stroke={theme === "dark" ? "#fff" : "#000"}>
-                          <Label value="Spike Level" angle={-90} position="insideLeft" fill={theme === "dark" ? "#fff" : "#000"} />
-                        </YAxis>
-                        <Tooltip />
-                        <Line dataKey="spike" stroke="green" />
-                      </LineChart>
-                    </div>
+                    <LineChart width={250} height={150} data={chartData}>
+                      <XAxis dataKey="time">
+                        <Label value="Time" position="insideBottom" />
+                      </XAxis>
+                      <YAxis>
+                        <Label value="Spike Level" angle={-90} position="insideLeft" />
+                      </YAxis>
+                      <Tooltip />
+                      <Line dataKey="spike" stroke="#10b981" />
+                    </LineChart>
 
                   </div>
 

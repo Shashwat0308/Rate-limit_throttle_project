@@ -16,10 +16,13 @@ const authRoutes = require("./routes/authRoutes");
 const authMiddleware = require("./middleware/authMiddleware");
 const adminOnly = require("./middleware/roleMiddleware");
 
+const RequestLog = require("./models/RequestLog");
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Middlewares
+// ================= MIDDLEWARE =================
+
 app.use(cors({
   exposedHeaders: [
     "X-RateLimit-Limit",
@@ -30,16 +33,16 @@ app.use(cors({
 
 app.use(express.json());
 
-// ✅ Auth routes
+// ================= AUTH =================
+
 app.use("/api/auth", authRoutes);
 
-// 🔑 Identity (IMPORTANT FIX)
+// 🔑 Identity
 function identify(req) {
   if (req.user && req.user.id) {
     return { id: req.user.id, type: "user" };
   }
 
-  // fallback → demo users (for old UI)
   const userId = req.headers["user-id"];
   if (userId) {
     return { id: userId, type: "demo-user" };
@@ -48,17 +51,17 @@ function identify(req) {
   return { id: req.ip, type: "ip" };
 }
 
-// ⚡ Rate limiter
+// ================= RATE LIMITER =================
+
 const rateLimiter = rateLimitFactory({
   redisUrl: process.env.REDIS_URL || "redis://127.0.0.1:6379",
   default: {
     capacity: Number(process.env.RL_CAPACITY) || 100,
     windowSec: Number(process.env.RL_WINDOW_SEC) || 60,
   },
-  sampleSaveRate: Number(process.env.SAMPLE_RATE) || 1,
+  sampleSaveRate: Number(process.env.SAMPLE_RATE) || 1, // 🔥 full logging
   saveEvent: saveThrottleEvent,
 });
-
 
 // ================= ROUTES =================
 
@@ -93,7 +96,9 @@ app.get(
   }
 );
 
-// ⚙️ Admin
+// ================= ADMIN =================
+
+// ⚙️ Get limits
 app.get(
   "/api/admin/limits",
   authMiddleware,
@@ -103,6 +108,7 @@ app.get(
   }
 );
 
+// ⚙️ Set limits
 app.post(
   "/api/admin/limits",
   authMiddleware,
@@ -126,6 +132,55 @@ app.post(
 );
 
 
+// 🔥 ================= RESET FEATURE =================
+
+// ✅ Reset ALL users (Redis only)
+app.post(
+  "/api/admin/reset",
+  authMiddleware,
+  adminOnly,
+  async (req, res) => {
+    try {
+      await redis.flushall();
+
+      res.json({
+        message: "All rate limit data reset successfully ✅"
+      });
+    } catch (err) {
+      console.error("Reset error:", err);
+      res.status(500).json({
+        message: "Error resetting data ❌"
+      });
+    }
+  }
+);
+
+// ✅ Reset specific user
+app.post(
+  "/api/admin/reset/:userId",
+  authMiddleware,
+  adminOnly,
+  async (req, res) => {
+    const userId = req.params.userId;
+
+    try {
+      await redis.del(`user:${userId}:total`);
+      await redis.del(`user:${userId}:allowed`);
+      await redis.del(`user:${userId}:blocked`);
+      await redis.del(`user:${userId}:timestamps`);
+
+      res.json({
+        message: `User ${userId} reset successfully ✅`
+      });
+    } catch (err) {
+      console.error("User reset error:", err);
+      res.status(500).json({
+        message: "Error resetting user ❌"
+      });
+    }
+  }
+);
+
 // ================= ANALYTICS =================
 
 // 👤 Single user
@@ -146,11 +201,10 @@ app.get("/analytics/:userId", async (req, res) => {
   });
 });
 
-// 👥 All users (FIXED + HYBRID)
+// 👥 All users
 app.get("/analytics", async (req, res) => {
   const users = [];
 
-  // ✅ OLD demo users (user1 → user10)
   for (let i = 1; i <= 10; i++) {
     const userId = `user${i}`;
 
@@ -166,14 +220,12 @@ app.get("/analytics", async (req, res) => {
     });
   }
 
-  // ✅ NEW: include logged-in JWT user (IMPORTANT)
-  const jwtUserId = "user1"; // 👈 keep same as login
+  const jwtUserId = "user1";
 
   const total = await redis.get(`user:${jwtUserId}:total`) || 0;
   const blocked = await redis.get(`user:${jwtUserId}:blocked`) || 0;
   const timestamps = await redis.lrange(`user:${jwtUserId}:timestamps`, 0, -1);
 
-  // override user1 with real data
   users[0] = {
     userId: jwtUserId,
     total,
@@ -184,9 +236,9 @@ app.get("/analytics", async (req, res) => {
   res.json(users);
 });
 
-const RequestLog = require("./models/RequestLog");
+// ================= MONGO LOGS =================
 
-// 📊 Get logs from MongoDB
+// 📊 Latest logs
 app.get("/logs", async (req, res) => {
   try {
     const logs = await RequestLog.find()
