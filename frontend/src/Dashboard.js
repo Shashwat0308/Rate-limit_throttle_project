@@ -42,6 +42,7 @@ function Dashboard({ theme, toggleTheme }) {
   // 🚀 Request
   const sendRequest = async (userId) => {
     const token = localStorage.getItem("token");
+      console.log("TOKEN:", token);
 
     try {
       if (userId === "user1" && token) {
@@ -92,10 +93,53 @@ function Dashboard({ theme, toggleTheme }) {
         </h2>
 
         <ul className={`${colors.subText} space-y-4`}>
-          <li>Dashboard</li>
-          <li>Analytics</li>
-          <li>Users</li>
-          <li>Settings</li>
+         <li
+  onClick={() => navigate("/dashboard")}
+  className="cursor-pointer hover:text-green-400"
+>
+  Overview
+</li>
+
+<li
+  onClick={() => navigate("/dashboard/live")}
+  className="cursor-pointer hover:text-green-400"
+>
+  Live Traffic
+</li>
+
+<li
+  onClick={() => navigate("/dashboard/health")}
+  className="cursor-pointer hover:text-green-400"
+>
+  System Health
+</li>
+
+<li
+  onClick={() => navigate("/dashboard/activity")}
+  className="cursor-pointer hover:text-green-400"
+>
+  Recent Activity
+</li>
+          
+          <li
+  onClick={() => navigate("/analytics/traffic")}
+  className="cursor-pointer hover:text-green-400"
+>
+  Analytics
+</li>
+          <li
+  onClick={() => navigate("/users")}
+  className="cursor-pointer hover:text-green-400"
+>
+  Users
+</li>
+          <li
+  onClick={() => navigate("/settings")}
+  className="cursor-pointer hover:text-green-400"
+>
+  Settings
+</li>
+
         </ul>
 
         <button

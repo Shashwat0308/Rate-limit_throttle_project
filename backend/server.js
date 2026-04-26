@@ -3,7 +3,6 @@
 const express = require("express");
 const cors = require("cors");
 const Redis = require("ioredis");
-const jwt = require("jsonwebtoken");
 
 // ✅ Redis
 const redis = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
@@ -21,8 +20,10 @@ const RequestLog = require("./models/RequestLog");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ================= MIDDLEWARE =================
+// global toggle for rate limiter
+let limiterEnabled = true;
 
+// ================= MIDDLEWARE =================
 app.use(cors({
   exposedHeaders: [
     "X-RateLimit-Limit",
@@ -34,7 +35,6 @@ app.use(cors({
 app.use(express.json());
 
 // ================= AUTH =================
-
 app.use("/api/auth", authRoutes);
 
 // 🔑 Identity
@@ -52,20 +52,19 @@ function identify(req) {
 }
 
 // ================= RATE LIMITER =================
-
 const rateLimiter = rateLimitFactory({
   redisUrl: process.env.REDIS_URL || "redis://127.0.0.1:6379",
   default: {
     capacity: Number(process.env.RL_CAPACITY) || 100,
     windowSec: Number(process.env.RL_WINDOW_SEC) || 60,
   },
-  sampleSaveRate: Number(process.env.SAMPLE_RATE) || 1, // 🔥 full logging
+  sampleSaveRate: Number(process.env.SAMPLE_RATE) || 1,
   saveEvent: saveThrottleEvent,
 });
 
 // ================= ROUTES =================
 
-// ✅ Health
+// ✅ Home
 app.get("/", (req, res) => {
   res.send("Server running 🚀");
 });
@@ -73,7 +72,10 @@ app.get("/", (req, res) => {
 // 🌐 Public
 app.get(
   "/api/public",
-  rateLimiter.middleware({ route: "public", identify }),
+  (req, res, next) => {
+    if (!limiterEnabled) return next();
+    return rateLimiter.middleware({ route: "public", identify })(req, res, next);
+  },
   (req, res) => {
     res.json({
       message: "Public route OK",
@@ -86,7 +88,10 @@ app.get(
 app.get(
   "/api/protected",
   authMiddleware,
-  rateLimiter.middleware({ route: "protected", identify }),
+  (req, res, next) => {
+    if (!limiterEnabled) return next();
+    return rateLimiter.middleware({ route: "protected", identify })(req, res, next);
+  },
   (req, res) => {
     res.json({
       message: "Protected route OK",
@@ -131,10 +136,22 @@ app.post(
   }
 );
 
+// 🔁 Toggle limiter
+app.post(
+  "/api/admin/toggle",
+  authMiddleware,
+  adminOnly,
+  (req, res) => {
+    limiterEnabled = !limiterEnabled;
 
-// 🔥 ================= RESET FEATURE =================
+    res.json({
+      message: `Limiter ${limiterEnabled ? "Enabled ✅" : "Disabled ❌"}`,
+      enabled: limiterEnabled,
+    });
+  }
+);
 
-// ✅ Reset ALL users (Redis only)
+// 🔥 RESET ALL
 app.post(
   "/api/admin/reset",
   authMiddleware,
@@ -155,7 +172,7 @@ app.post(
   }
 );
 
-// ✅ Reset specific user
+// 🔥 RESET USER
 app.post(
   "/api/admin/reset/:userId",
   authMiddleware,
@@ -220,25 +237,10 @@ app.get("/analytics", async (req, res) => {
     });
   }
 
-  const jwtUserId = "user1";
-
-  const total = await redis.get(`user:${jwtUserId}:total`) || 0;
-  const blocked = await redis.get(`user:${jwtUserId}:blocked`) || 0;
-  const timestamps = await redis.lrange(`user:${jwtUserId}:timestamps`, 0, -1);
-
-  users[0] = {
-    userId: jwtUserId,
-    total,
-    blocked,
-    timestamps
-  };
-
   res.json(users);
 });
 
-// ================= MONGO LOGS =================
-
-// 📊 Latest logs
+// ================= LOGS =================
 app.get("/logs", async (req, res) => {
   try {
     const logs = await RequestLog.find()
@@ -251,9 +253,19 @@ app.get("/logs", async (req, res) => {
   }
 });
 
+// ================= SYSTEM HEALTH =================
+app.get("/health", async (req, res) => {
+  res.json({
+    server: "Running ✅",
+    redis: "Connected ✅",
+    mongo: "Connected ✅",
+    uptime: Math.floor(process.uptime()),
+    memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + " MB",
+    limiterEnabled,
+  });
+});
 
 // ================= START =================
-
 async function startServer() {
   try {
     await connectMongo();

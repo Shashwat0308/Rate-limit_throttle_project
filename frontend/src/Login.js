@@ -16,15 +16,20 @@ function Login() {
 
       const data = await res.json();
 
+      console.log("Login Response:", data);
+
       if (data.token) {
         localStorage.setItem("token", data.token);
+
+        console.log("Saved Token:", localStorage.getItem("token"));
+
         alert("Login successful ✅");
       } else {
         alert("Login failed ❌");
       }
 
     } catch (err) {
-      console.error(err);
+      console.error("Login Error:", err);
     }
   };
 
